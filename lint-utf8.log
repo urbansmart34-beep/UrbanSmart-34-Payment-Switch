@@ -1,0 +1,78 @@
+﻿
+> frontend@0.1.0 lint
+> eslint
+
+
+C:\Users\makhu\OneDrive\Vukosi\URBANSMART\Payment Switch\frontend\app\actions.ts
+  38:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\makhu\OneDrive\Vukosi\URBANSMART\Payment Switch\frontend\app\actions\refund.ts
+  28:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\makhu\OneDrive\Vukosi\URBANSMART\Payment Switch\frontend\app\analytics\page.tsx
+  171:140  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\makhu\OneDrive\Vukosi\URBANSMART\Payment Switch\frontend\app\analytics\page.tsx:171:140
+  169 |                                 ? DAY_LABELS.map((d) => (
+  170 |                                     <div key={d} className="flex-1 flex flex-col justify-end gap-1 h-full">
+> 171 |                                         <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-t animate-pulse" style={{ height: `${Math.random() * 60 + 20}%` }} />
+      |                                                                                                                                            ^^^^^^^^^^^^^ Cannot call impure function
+  172 |                                         <div className="w-full bg-slate-100 dark:bg-slate-600 rounded-t animate-pulse" style={{ height: `${Math.random() * 40 + 10}%` }} />
+  173 |                                     </div>
+  174 |                                 ))                     react-hooks/purity
+  172:140  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\makhu\OneDrive\Vukosi\URBANSMART\Payment Switch\frontend\app\analytics\page.tsx:172:140
+  170 |                                     <div key={d} className="flex-1 flex flex-col justify-end gap-1 h-full">
+  171 |                                         <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-t animate-pulse" style={{ height: `${Math.random() * 60 + 20}%` }} />
+> 172 |                                         <div className="w-full bg-slate-100 dark:bg-slate-600 rounded-t animate-pulse" style={{ height: `${Math.random() * 40 + 10}%` }} />
+      |                                                                                                                                            ^^^^^^^^^^^^^ Cannot call impure function
+  173 |                                     </div>
+  174 |                                 ))
+  175 |                                 : (data?.weeklyBars ?? []).map((bar, i) => {  react-hooks/purity
+
+C:\Users\makhu\OneDrive\Vukosi\URBANSMART\Payment Switch\frontend\app\api\process-payment\route.ts
+  72:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\makhu\OneDrive\Vukosi\URBANSMART\Payment Switch\frontend\app\fraud\page.tsx
+  36:12  warning  'loading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\makhu\OneDrive\Vukosi\URBANSMART\Payment Switch\frontend\app\layout.tsx
+  25:9  warning  Custom fonts not added in `pages/_document.js` will only load for a single page. This is discouraged. See: https://nextjs.org/docs/messages/no-page-custom-font  @next/next/no-page-custom-font
+
+C:\Users\makhu\OneDrive\Vukosi\URBANSMART\Payment Switch\frontend\app\reconciliation\page.tsx
+  48:12  warning  'loading' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  67:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\makhu\OneDrive\Vukosi\URBANSMART\Payment Switch\frontend\app\reconciliation\page.tsx:67:9
+  65 |
+  66 |     useEffect(() => {
+> 67 |         loadData();
+     |         ^^^^^^^^ Avoid calling setState() directly within an effect
+  68 |     }, []);
+  69 |
+  70 |     const handleSync = async () => {  react-hooks/set-state-in-effect
+  86:11  warning  'unresolvedItems' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+
+C:\Users\makhu\OneDrive\Vukosi\URBANSMART\Payment Switch\frontend\components\payment\YocoPayment.tsx
+   3:20  warning  'useEffect' is defined but never used  @typescript-eslint/no-unused-vars
+  58:30  warning  'err' is defined but never used        @typescript-eslint/no-unused-vars
+
+C:\Users\makhu\OneDrive\Vukosi\URBANSMART\Payment Switch\frontend\lib\circuitBreaker.ts
+  3:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\makhu\OneDrive\Vukosi\URBANSMART\Payment Switch\frontend\lib\rateLimit.ts
+  12:14  warning  'rejRes' is defined but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 14 problems (7 errors, 7 warnings)
+

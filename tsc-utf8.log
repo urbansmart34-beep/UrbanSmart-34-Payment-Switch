@@ -1,0 +1,4 @@
+﻿app/payment/page.tsx(27,25): error TS2322: Type '{ amountInCents: number; currency: "ZAR"; name: string; description: string; }' is not assignable to type 'IntrinsicAttributes & YocoPaymentProps'.
+  Property 'name' does not exist on type 'IntrinsicAttributes & YocoPaymentProps'.
+lib/circuitBreaker.ts(1,28): error TS7016: Could not find a declaration file for module 'opossum'. 'C:/Users/makhu/OneDrive/Vukosi/URBANSMART/Payment Switch/frontend/node_modules/opossum/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/opossum` if it exists or add a new declaration (.d.ts) file containing `declare module 'opossum';`

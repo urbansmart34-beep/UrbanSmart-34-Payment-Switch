@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Store {
+  id          String   @id @default(uuid())
+  name        String
+  apiKey      String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  transactions Transaction[]
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  amount      Int      // Amount in cents
+  currency    String   // 'ZAR'
+  status      String   // 'PENDING', 'SUCCESS', 'FAILED'
+  yocoChargeId String? // ID returned from Yoco
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id])
+  refunds     Refund[]
+  metadata    String?  // JSON string for extra info
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Refund {
+  id           String      @id @default(uuid())
+  amount       Int         // Amount in cents
+  status       String      // 'REQUESTED', 'PROCESSING', 'COMPLETED', 'FAILED'
+  yocoRefundId String?     // ID returned from Yoco API if applicable
+  errorReason  String?
+  transactionId String
+  transaction  Transaction @relation(fields: [transactionId], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model WebhookEndpoint {
+  id         String   @id @default(uuid())
+  url        String
+  events     String   // Comma separated list of events like "success,failed"
+  enabled    Boolean  @default(true)
+  secret     String?  // Optional secret for signature verification
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  logs       DeliveryLog[]
+}
+
+model DeliveryLog {
+  id         String   @id @default(uuid())
+  status     String   // 'success', 'failed'
+  event      String
+  payloadId  String
+  endpointId String
+  endpoint   WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  httpCode   Int?
+  createdAt  DateTime @default(now())
+}
+
+model SystemConfig {
+  id         String   @id @default(uuid()) // Can use a singleton with id "singleton"
+  key        String   @unique
+  value      String   // JSON stringified value
+  updatedAt  DateTime @updatedAt
+}
+
+model TeamMember {
+  id          String   @id @default(uuid())
+  name        String
+  email       String   @unique
+  role        String   // 'Admin', 'Developer', 'Auditor'
+  permissions String   // JSON string
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
