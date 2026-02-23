@@ -3,65 +3,80 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-    // 1. Create a Test Store
-    const store = await prisma.store.upsert({
-        where: { apiKey: 'sk_test_urbansmart_store_1' },
+    console.log("Seeding database...")
+
+    // Seed Stores
+    const store1 = await prisma.store.upsert({
+        where: { apiKey: 'sk_test_store1' },
         update: {},
         create: {
-            name: 'UrbanSmart Demo Store',
-            apiKey: 'sk_test_urbansmart_store_1',
+            name: 'STORE_CAP_01',
+            apiKey: 'sk_test_store1',
         },
     })
 
-    console.log({ store })
+    const store2 = await prisma.store.upsert({
+        where: { apiKey: 'sk_test_store2' },
+        update: {},
+        create: {
+            name: 'STORE_JHB_04',
+            apiKey: 'sk_test_store2',
+        },
+    })
 
-    // 2. Create some transactions
+    // Seed Transactions
     await prisma.transaction.createMany({
         data: [
             {
-                amount: 42500, // R425.00
+                amount: 125000,
                 currency: 'ZAR',
                 status: 'SUCCESS',
-                storeId: store.id,
-                metadata: JSON.stringify({ item: "Premium Plan" }),
-                createdAt: new Date(Date.now() - 1000 * 60 * 2), // 2 mins ago
+                storeId: store1.id,
+                yocoChargeId: 'ch_test_1',
+                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
             },
             {
-                amount: 1250, // R12.50
-                currency: 'ZAR',
-                status: 'SUCCESS',
-                storeId: store.id,
-                metadata: JSON.stringify({ item: "Coffee" }),
-                createdAt: new Date(Date.now() - 1000 * 60 * 15), // 15 mins ago
-            },
-            {
-                amount: 490, // R4.90
+                amount: 489999,
                 currency: 'ZAR',
                 status: 'PENDING',
-                storeId: store.id,
-                metadata: JSON.stringify({ item: "Cookie" }),
-                createdAt: new Date(Date.now() - 1000 * 60 * 45), // 45 mins ago
+                storeId: store2.id,
+                yocoChargeId: 'ch_test_2',
+                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5),
             },
             {
-                amount: 9900, // R99.00
+                amount: 85000,
                 currency: 'ZAR',
                 status: 'FAILED',
-                storeId: store.id,
-                metadata: JSON.stringify({ item: "Failed Order", failure_reason: "Insufficient Funds" }),
-                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
+                storeId: store1.id,
+                yocoChargeId: 'ch_test_3',
+                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
+            },
+            {
+                amount: 210000,
+                currency: 'ZAR',
+                status: 'SUCCESS',
+                storeId: store1.id,
+                yocoChargeId: 'ch_test_4',
+                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 28),
+            },
+            {
+                amount: 1245000,
+                currency: 'ZAR',
+                status: 'SUCCESS',
+                storeId: store2.id,
+                yocoChargeId: 'ch_test_5',
+                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48),
             }
         ]
     })
-
-    console.log('Seeded transactions.')
+    console.log("Seeding finished.")
 }
 
 main()
-    .then(async () => {
-        await prisma.$disconnect()
-    })
-    .catch(async (e) => {
+    .catch((e) => {
         console.error(e)
-        await prisma.$disconnect()
         process.exit(1)
+    })
+    .finally(async () => {
+        await prisma.$disconnect()
     })

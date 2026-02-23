@@ -13,9 +13,6 @@ interface SecurityToggle {
     enabled: boolean;
 }
 
-const WEBHOOK_URL = "";
-const PUBLIC_KEY = "";
-
 export default function ApiSecurityPage() {
     const [env, setEnv] = useState<Environment>("production");
     const [showSecret, setShowSecret] = useState(false);
@@ -23,6 +20,7 @@ export default function ApiSecurityPage() {
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<"idle" | "success" | "error">("idle");
     const [saving, setSaving] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
     const [ips, setIps] = useState<string[]>([]);
     const [ipInput, setIpInput] = useState("");
     const [showIpInput, setShowIpInput] = useState(false);
@@ -31,8 +29,16 @@ export default function ApiSecurityPage() {
         { id: "https", label: "Enforce HTTPS", description: "Reject all non-secure requests", enabled: true },
         { id: "fraud", label: "Fraud Detection Mode", description: "Enable advanced transaction scoring", enabled: false },
     ]);
+    const [keys, setKeys] = useState<{ public: string; secret: string }>({ public: "Loading...", secret: "Loading..." });
+    const [webhookUrl, setWebhookUrl] = useState("Loading...");
 
     useEffect(() => {
+        if (typeof window !== "undefined") {
+            setWebhookUrl(`${window.location.origin}/api/webhooks`);
+        }
+
+        // Fetch existing configuration (IPs, env mode, toggles)
+
         fetch("/api/system/config?key=api_settings")
             .then(res => res.json())
             .then(data => {
@@ -41,6 +47,14 @@ export default function ApiSecurityPage() {
                     if (data.value.ips) setIps(data.value.ips);
                     if (data.value.toggles) setToggles(data.value.toggles);
                 }
+            })
+            .catch(console.error);
+
+        // Fetch secure API keys from runtime environment
+        fetch("/api/system/credentials")
+            .then(res => res.json())
+            .then(data => {
+                setKeys({ public: data.publicKey, secret: data.secretKey });
             })
             .catch(console.error);
     }, []);
@@ -54,10 +68,23 @@ export default function ApiSecurityPage() {
     const handleTestConnection = async () => {
         setTesting(true);
         setTestResult("idle");
-        await new Promise((r) => setTimeout(r, 1500));
-        setTestResult("success");
-        setTesting(false);
-        setTimeout(() => setTestResult("idle"), 3000);
+        try {
+            const res = await fetch("/api/webhooks/test", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url: webhookUrl })
+            });
+            if (res.ok) {
+                setTestResult("success");
+            } else {
+                setTestResult("error");
+            }
+        } catch (e) {
+            setTestResult("error");
+        } finally {
+            setTesting(false);
+            setTimeout(() => setTestResult("idle"), 3000);
+        }
     };
 
     const handleSave = async () => {
@@ -75,6 +102,8 @@ export default function ApiSecurityPage() {
             alert("Failed to save settings");
         } finally {
             setSaving(false);
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 2500);
         }
     };
 
@@ -117,18 +146,21 @@ export default function ApiSecurityPage() {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg font-semibold text-sm hover:opacity-90 disabled:opacity-60 transition-opacity shadow-lg shadow-primary/20"
+                    className={clsx(
+                        "flex items-center gap-2 px-5 py-2.5 text-white rounded-lg font-semibold text-sm hover:opacity-90 disabled:opacity-60 transition-all shadow-lg",
+                        saveSuccess ? "bg-emerald-500 shadow-emerald-500/20" : "bg-primary shadow-primary/20"
+                    )}
                 >
                     <span className={clsx("material-symbols-outlined text-[18px]", saving && "animate-spin")}>
-                        {saving ? "progress_activity" : "save"}
+                        {saving ? "progress_activity" : saveSuccess ? "check" : "save"}
                     </span>
-                    {saving ? "Saving..." : "Save Changes"}
+                    {saving ? "Saving..." : saveSuccess ? "Saved!" : "Save Changes"}
                 </button>
             </div>
 
             <main className="flex-1 pb-24 md:pb-8 space-y-0 md:space-y-6">
                 {/* Environment Toggle */}
-                <div className="px-4 py-6 md:px-0 md:py-0">
+                <div className="px-4 py-6 md:px-0 md:py-0 flex items-center justify-between md:justify-start gap-4">
                     <div className="flex h-10 w-full md:max-w-xs items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-800 p-1">
                         {(["production", "sandbox"] as Environment[]).map((e) => (
                             <button
@@ -145,13 +177,17 @@ export default function ApiSecurityPage() {
                             </button>
                         ))}
                     </div>
+                    <div className="hidden md:flex items-center gap-1.5 text-xs text-slate-500">
+                        <span className="material-symbols-outlined text-[14px]">info</span>
+                        Keys are securely loaded from your Render <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">.env</code>
+                    </div>
                 </div>
 
                 {/* API Credentials */}
                 <section className="mb-8 md:mb-0">
                     <div className="px-4 md:px-0 mb-2 flex items-center justify-between">
                         <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">API Credentials</h2>
-                        <span className="material-symbols-outlined text-slate-400 text-sm cursor-pointer">help</span>
+                        <span className="material-symbols-outlined text-slate-400 text-sm cursor-help" title="These keys map exactly to the physical store's payment capabilities.">help</span>
                     </div>
                     <div className="bg-white dark:bg-slate-900/50 border-y md:border md:rounded-xl border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:divide-slate-800">
                         {/* Public Key */}
@@ -161,9 +197,9 @@ export default function ApiSecurityPage() {
                             </div>
                             <div className="flex flex-1 flex-col min-w-0">
                                 <p className="text-sm font-medium">Public Key</p>
-                                <p className="text-xs text-slate-500 truncate font-mono">{PUBLIC_KEY}</p>
+                                <p className="text-xs text-slate-500 truncate font-mono">{keys.public}</p>
                             </div>
-                            <button onClick={() => handleCopy(PUBLIC_KEY, "public")} className="text-slate-400 hover:text-primary transition-colors shrink-0">
+                            <button onClick={() => handleCopy(keys.public, "public")} className="text-slate-400 hover:text-primary transition-colors shrink-0">
                                 <span className="material-symbols-outlined">{copied === "public" ? "check" : "content_copy"}</span>
                             </button>
                         </div>
@@ -176,20 +212,21 @@ export default function ApiSecurityPage() {
                                 <p className="text-sm font-medium">Secret Key</p>
                                 <div className="flex items-center gap-2">
                                     <p className="text-xs text-slate-500 font-mono tracking-widest">
-                                        {showSecret ? "" : "••••••••••••••••"}
+                                        {showSecret ? keys.secret : "•••••••••••••••••••••••••••••••••"}
                                     </p>
                                     <button onClick={() => setShowSecret(!showSecret)} className="text-slate-400 hover:text-primary transition-colors">
                                         <span className="material-symbols-outlined text-[16px]">{showSecret ? "visibility_off" : "visibility"}</span>
                                     </button>
                                 </div>
                             </div>
-                            <button onClick={() => handleCopy("sk_live_secret", "secret")} className="text-slate-400 hover:text-primary transition-colors shrink-0">
+                            <button onClick={() => handleCopy(keys.secret, "secret")} className="text-slate-400 hover:text-primary transition-colors shrink-0">
                                 <span className="material-symbols-outlined">{copied === "secret" ? "check" : "content_copy"}</span>
                             </button>
                         </div>
                     </div>
-                    <div className="px-4 md:px-0 mt-2">
-                        <button className="text-sm text-primary font-medium hover:underline">Regenerate all keys</button>
+                    <div className="px-4 md:px-0 mt-3 flex items-center gap-1.5 text-xs text-slate-500">
+                        <span className="material-symbols-outlined text-[14px]">info</span>
+                        To rotate your API keys, generate them in your <a href="https://portal.yoco.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Yoco Dashboard</a> and update your Render Environment Variables.
                     </div>
                 </section>
 
@@ -213,7 +250,7 @@ export default function ApiSecurityPage() {
                             </div>
                             <div className="flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-3 py-2 border border-slate-200 dark:border-slate-700">
                                 <span className="material-symbols-outlined text-slate-400 text-[18px]">link</span>
-                                <p className="text-xs text-slate-600 dark:text-slate-300 font-mono truncate">{WEBHOOK_URL}</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-300 font-mono truncate">{webhookUrl}</p>
                             </div>
                             <div className="flex gap-2">
                                 <button
@@ -226,8 +263,9 @@ export default function ApiSecurityPage() {
                                     </span>
                                     {testing ? "Testing..." : "Test Connection"}
                                 </button>
-                                <button className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-80 transition-opacity">
-                                    Edit
+                                <button onClick={() => handleCopy(webhookUrl, "webhook")} className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-80 transition-opacity flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[14px]">{copied === "webhook" ? "check" : "content_copy"}</span>
+                                    Copy URL
                                 </button>
                             </div>
                         </div>

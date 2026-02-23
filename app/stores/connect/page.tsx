@@ -9,6 +9,9 @@ type Step = 1 | 2 | 3;
 export default function StoreConnectionWizard() {
     const [step, setStep] = useState<Step>(1);
     const [integrationMethod, setIntegrationMethod] = useState<"inline" | "popup" | null>(null);
+    const [name, setName] = useState("");
+    const [apiKey, setApiKey] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
     return (
         <div className="flex flex-col min-h-screen max-w-lg mx-auto bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display pb-32">
@@ -63,6 +66,8 @@ export default function StoreConnectionWizard() {
                                         className="w-full h-14 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-base"
                                         placeholder="e.g. Acme Coffee Roasters"
                                         type="text"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
                                     />
                                 </div>
                             </div>
@@ -182,7 +187,7 @@ export default function StoreConnectionWizard() {
                                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Publishable Key</span>
                                 <span className="material-symbols-outlined text-sm text-slate-400 cursor-pointer hover:text-primary transition-colors">content_copy</span>
                             </div>
-                            <code className="text-xs font-mono text-primary break-all bg-primary/5 p-2 rounded block">pk_test_ed3c54a6gO...</code>
+                            <code className="text-xs font-mono text-primary break-all bg-primary/5 p-2 rounded block">{apiKey || "pk_test_..."}</code>
                         </div>
 
                         {/* SDK Snippet Mock */}
@@ -195,7 +200,7 @@ export default function StoreConnectionWizard() {
                             <pre className="text-[11px] text-slate-300 font-mono leading-loose overflow-x-auto hide-scrollbar">
                                 <span className="text-blue-400">&lt;script&gt;</span>{'\n'}
                                 {'  '}<span className="text-purple-400">const</span> yoco = <span className="text-amber-400">new</span> <span className="text-emerald-400">YocoSDK</span>({'{'}{'\n'}
-                                {'    '}publicKey: <span className="text-orange-400">'pk_test_...'</span>,{'\n'}
+                                {'    '}publicKey: <span className="text-orange-400">'{apiKey || "pk_test_..."}'</span>,{'\n'}
                                 {'    '}storeId: <span className="text-orange-400">'ST-8329-XP'</span>{'\n'}
                                 {'  '}{'}'});{'\n'}
                                 <span className="text-blue-400">&lt;/script&gt;</span>
@@ -209,12 +214,36 @@ export default function StoreConnectionWizard() {
             <div className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto p-4 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 z-50">
                 {step < 3 ? (
                     <button
-                        onClick={() => setStep((s) => (s + 1) as Step)}
-                        disabled={step === 2 && !integrationMethod}
+                        onClick={async () => {
+                            if (step === 1) {
+                                setStep(2);
+                            } else if (step === 2) {
+                                setSubmitting(true);
+                                try {
+                                    const res = await fetch("/api/stores", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ name: name || "New Store" })
+                                    });
+                                    const data = await res.json();
+                                    if (data.store) {
+                                        setApiKey(data.store.apiKey);
+                                        setStep(3);
+                                    } else {
+                                        alert(data.error || "Failed to connect store.");
+                                    }
+                                } catch {
+                                    alert("Network error. Please try again.");
+                                } finally {
+                                    setSubmitting(false);
+                                }
+                            }
+                        }}
+                        disabled={(step === 2 && !integrationMethod) || submitting || (step === 1 && !name.trim())}
                         className="w-full h-14 bg-primary disabled:bg-slate-300 disabled:dark:bg-slate-800 disabled:text-slate-500 border border-transparent disabled:dark:border-slate-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:shadow-none"
                     >
-                        {step === 1 ? "Continue to Method" : "Complete Setup"}
-                        <span className="material-symbols-outlined">{step === 1 ? "arrow_forward" : "done"}</span>
+                        {step === 1 ? "Continue to Method" : (submitting ? "Connecting..." : "Complete Setup")}
+                        <span className="material-symbols-outlined">{step === 1 ? "arrow_forward" : (submitting ? "sync" : "done")}</span>
                     </button>
                 ) : (
                     <Link

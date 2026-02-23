@@ -41,3 +41,29 @@ export async function GET() {
         return NextResponse.json({ error: "Failed to fetch stores" }, { status: 500 });
     }
 }
+
+export async function POST(request: Request) {
+    try {
+        const body = await request.json();
+
+        if (!body.name) {
+            return NextResponse.json({ error: "Store name is required" }, { status: 400 });
+        }
+
+        // Generate a mock API key for the new store
+        const randomString = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+        const apiKey = `pk_test_${randomString}`;
+
+        const newStore = await prisma.store.create({
+            data: {
+                name: body.name,
+                apiKey,
+            }
+        });
+
+        return NextResponse.json({ success: true, store: newStore }, { status: 201 });
+    } catch (error) {
+        console.error("POST /api/stores error:", error);
+        return NextResponse.json({ error: "Failed to create store" }, { status: 500 });
+    }
+}

@@ -70,9 +70,6 @@ export default function StoresPage() {
                     <button onClick={() => setShowSearch(!showSearch)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                         <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">search</span>
                     </button>
-                    <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">tune</span>
-                    </button>
                 </div>
             </header>
 
@@ -121,18 +118,14 @@ export default function StoresPage() {
                     <p className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider">Active Stores</p>
                     <div className="flex items-end justify-between">
                         <p className="text-2xl font-bold leading-none">{loading ? "—" : activeCount}</p>
-                        <span className="text-emerald-500 text-xs font-bold flex items-center bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                            +{Math.max(0, activeCount - 1)}
-                        </span>
                     </div>
                 </div>
                 <div className="flex min-w-[160px] flex-1 flex-col gap-1 rounded-xl p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                     <p className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider">Total Volume</p>
                     <div className="flex items-end justify-between">
                         <p className="text-2xl font-bold leading-none">
-                            {loading ? "—" : `R ${(totalVolume / 100 / 1000).toFixed(1)}k`}
+                            {loading ? "—" : `R ${(totalVolume / 100).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`}
                         </p>
-                        <span className="text-emerald-500 text-xs font-bold flex items-center bg-emerald-500/10 px-1.5 py-0.5 rounded">15%</span>
                     </div>
                 </div>
             </div>
@@ -142,11 +135,6 @@ export default function StoresPage() {
                 <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                     {searchQuery ? `Results (${filtered.length})` : "Integrated Merchants"}
                 </h3>
-                {!searchQuery && (
-                    <span className="flex items-center gap-1 text-primary text-xs font-bold">
-                        View All <span className="material-symbols-outlined text-xs">chevron_right</span>
-                    </span>
-                )}
             </div>
 
             {/* Store List */}

@@ -9,41 +9,56 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
     const { id } = resolvedParams;
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-    // Mock data based on ID
-    const tx = {
-        amount: 1250.00,
-        status: "Succeeded",
-        date: "Oct 24, 2023, 14:32:01",
-        chargeId: `ch_550e8400-e29b-41d4`,
-        yocoToken: `tok_7a8b9c10d11e12f`,
-        storeId: "store_za_cpt_01",
-        orderId: `#ORD-2023-${id}`,
-        customerEmail: "jane.doe@example.com",
-        routingPath: "Switch-v2 -> Yoco API",
-        jsonPayload: {
-            status: "captured",
-            amount: 125000,
-            currency: "ZAR",
-            card: {
-                last4: "4242",
-                brand: "Visa",
-                funding: "credit"
-            },
-            metadata: {
-                plugin: "yoco-switch-v2.1",
-                checkout_id: "chk_9921"
-            },
-            gateway_response: {
-                code: "00",
-                message: "Approved"
-            }
-        },
-        timeline: [
-            { title: "Transaction Initiated", detail: "14:31:58.204 - Client SDK -> Switch", icon: "rocket_launch", color: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400" },
-            { title: "Yoco API Handshake", detail: "14:31:59.882 - POST /v1/charges", icon: "sync_alt", color: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400" },
-            { title: "Payment Captured", detail: "14:32:01.002 - Webhook Received", icon: "check", color: "bg-emerald-500 text-white", textClass: "text-emerald-500" },
-        ]
-    };
+    interface TxDetail {
+        amount: number;
+        status: string;
+        date: string;
+        chargeId: string;
+        yocoToken: string;
+        storeId: string;
+        orderId: string;
+        customerEmail: string;
+        routingPath: string;
+        jsonPayload: any;
+        timeline: { title: string; detail: string; icon: string; color: string; textClass?: string }[];
+    }
+
+    const [tx, setTx] = useState<TxDetail | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setLoading(true);
+        fetch(`/api/ledger/${id}`)
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    setTx(res.data);
+                }
+            })
+            .catch(e => console.error(e))
+            .finally(() => setLoading(false));
+    }, [id]);
+
+    if (loading) {
+        return (
+            <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen py-24 flex items-center justify-center">
+                <p className="text-slate-500 animate-pulse">Loading transaction details...</p>
+            </div>
+        );
+    }
+
+    if (!tx) {
+        return (
+            <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col items-center justify-center p-6 text-center">
+                <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-700 mb-4">search_off</span>
+                <h2 className="text-xl font-bold mb-2">Transaction Not Found</h2>
+                <p className="text-slate-500 mb-6">The transaction ID you are looking for does not exist in the ledger.</p>
+                <Link href="/transactions" className="px-5 py-2.5 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors">
+                    Return to Ledger
+                </Link>
+            </div>
+        );
+    }
 
     const handleCopy = (text: string, label: string) => {
         navigator.clipboard.writeText(text);
@@ -70,13 +85,27 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
             <main className="max-w-2xl mx-auto">
                 {/* Status Header */}
                 <section className="flex flex-col items-center py-8 px-4 bg-gradient-to-b from-primary/5 to-transparent">
-                    <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
-                        <span className="material-symbols-outlined text-emerald-500 text-4xl">check_circle</span>
+                    <div className={clsx("w-16 h-16 rounded-full flex items-center justify-center mb-4 text-4xl",
+                        tx.status === "SUCCESS" ? "bg-emerald-500/20 text-emerald-500" :
+                            tx.status === "FAILED" ? "bg-rose-500/20 text-rose-500" :
+                                "bg-amber-500/20 text-amber-500"
+                    )}>
+                        <span className="material-symbols-outlined">
+                            {tx.status === "SUCCESS" ? "check_circle" : tx.status === "FAILED" ? "error" : "schedule"}
+                        </span>
                     </div>
-                    <h2 className="text-3xl font-bold tracking-tight">R {tx.amount.toFixed(2)}</h2>
+                    <h2 className="text-3xl font-bold tracking-tight">R {(tx.amount / 100).toFixed(2)}</h2>
                     <div className="flex items-center gap-2 mt-1">
-                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <p className="text-emerald-500 font-medium">{tx.status}</p>
+                        <span className={clsx("inline-block w-2 h-2 rounded-full",
+                            tx.status === "SUCCESS" ? "bg-emerald-500" :
+                                tx.status === "FAILED" ? "bg-rose-500" :
+                                    "bg-amber-500"
+                        )}></span>
+                        <p className={clsx("font-medium",
+                            tx.status === "SUCCESS" ? "text-emerald-500" :
+                                tx.status === "FAILED" ? "text-rose-500" :
+                                    "text-amber-500"
+                        )}>{tx.status}</p>
                     </div>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{tx.date}</p>
                 </section>
@@ -189,14 +218,10 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
 
             {/* Fixed Bottom Actions */}
             <div className="fixed bottom-0 md:bottom-6 md:w-[600px] md:rounded-2xl md:left-1/2 md:-translate-x-1/2 left-0 right-0 p-4 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-xl border-t md:border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-3 shadow-2xl z-40">
-                <button className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-4 md:py-3 rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2">
+                <Link href={`/refunds`} className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-4 md:py-3 rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2">
                     <span className="material-symbols-outlined text-xl">restart_alt</span>
                     Issue Full Refund
-                </button>
-                <button className="flex-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold py-4 md:py-3 rounded-xl hover:bg-slate-300 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined text-xl">download</span>
-                    Download Log
-                </button>
+                </Link>
             </div>
 
             {/* Floating Copy Confirmation */}

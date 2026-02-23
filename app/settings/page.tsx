@@ -1,40 +1,8 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
-
-interface SettingsSection {
-    href: string;
-    icon: string;
-    iconBg: string;
-    title: string;
-    description: string;
-    badge?: string;
-    badgeColor?: string;
-}
-
-const SETTINGS_SECTIONS: SettingsSection[] = [
-    {
-        href: "/settings/api",
-        icon: "key",
-        iconBg: "bg-primary/10 text-primary",
-        title: "API & Security",
-        description: "Manage API credentials, webhook URLs, IP whitelisting, and enforce security policies.",
-        badge: "Production",
-        badgeColor: "bg-emerald-500/10 text-emerald-500",
-    },
-    {
-        href: "/settings/team",
-        icon: "group",
-        iconBg: "bg-violet-500/10 text-violet-500",
-        title: "Team & Access",
-        description: "Invite members, assign roles, and control who has access to the payment switch.",
-    },
-    {
-        href: "/settings/webhooks",
-        icon: "webhook",
-        iconBg: "bg-amber-500/10 text-amber-500",
-        title: "Webhooks",
-        description: "Configure and test event-driven endpoints for payment notifications and alerts.",
-    },
-];
+import clsx from "clsx";
 
 const QUICK_LINKS = [
     { label: "View API Docs", icon: "description", href: "/settings/api" },
@@ -43,58 +11,143 @@ const QUICK_LINKS = [
 ];
 
 export default function SettingsIndexPage() {
+    const [platformName, setPlatformName] = useState("URBANSMART-34 Payment SWITCH");
+    const [supportEmail, setSupportEmail] = useState("support@urbansmart.co.za");
+    const [defaultCurrency, setDefaultCurrency] = useState("ZAR");
+
+    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetch("/api/system/config?key=general_settings")
+            .then(res => res.json())
+            .then(data => {
+                if (data.value) {
+                    setPlatformName(data.value.platformName || "URBANSMART-34 Payment SWITCH");
+                    setSupportEmail(data.value.supportEmail || "support@urbansmart.co.za");
+                    setDefaultCurrency(data.value.defaultCurrency || "ZAR");
+                }
+            })
+            .catch(() => { })
+            .finally(() => setLoading(false));
+    }, []);
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const res = await fetch("/api/system/config", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    key: "general_settings",
+                    value: { platformName, supportEmail, defaultCurrency }
+                })
+            });
+            if (res.ok) {
+                setSaved(true);
+                setTimeout(() => setSaved(false), 2000);
+            } else {
+                alert("Failed to save settings");
+            }
+        } catch (e) {
+            alert("Network error.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
-        <div className="flex flex-col min-h-full">
+        <div className="flex flex-col min-h-full pb-24 md:pb-8">
             {/* Mobile Header */}
             <header className="sticky top-0 z-20 flex md:hidden items-center bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 pt-8 pb-4">
-                <h1 className="text-xl font-bold tracking-tight">Settings</h1>
+                <h1 className="text-xl font-bold tracking-tight">General Settings</h1>
             </header>
 
             {/* Desktop Header */}
-            <div className="hidden md:block mb-8">
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Configuration</p>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Settings</h2>
-                <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your payment switch configuration, credentials, and team access.</p>
+            <div className="hidden md:flex items-center justify-between mb-8">
+                <div>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">General Settings</h2>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">Configure your core platform details and defaults.</p>
+                </div>
+                <button
+                    onClick={handleSave}
+                    disabled={saving || loading}
+                    className={clsx(
+                        "flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold text-white shadow-lg transition-all",
+                        saved ? "bg-emerald-500 shadow-emerald-500/20" : "bg-primary shadow-primary/20 hover:bg-primary/90",
+                        (saving || loading) && "opacity-70"
+                    )}
+                >
+                    <span className={clsx("material-symbols-outlined text-[18px]", saving && "animate-spin")}>
+                        {saved ? "check" : saving ? "progress_activity" : "save"}
+                    </span>
+                    {saved ? "Saved" : "Save Changes"}
+                </button>
             </div>
 
-            <main className="flex-1 pb-24 md:pb-8 space-y-8">
+            <main className="flex-1 space-y-8">
+                {/* General Settings Form */}
+                <section className="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Platform Identity</h3>
 
-                {/* Main Settings Cards */}
-                <section>
-                    <p className="hidden md:block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 px-0">Configuration Areas</p>
-                    <p className="md:hidden text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 px-4">Configuration Areas</p>
+                    <div className="space-y-4 max-w-2xl">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Platform Name</label>
+                            <input
+                                type="text"
+                                value={platformName}
+                                onChange={(e) => setPlatformName(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                                placeholder="e.g. UrbanSmart Switch"
+                                disabled={loading}
+                            />
+                        </div>
 
-                    <div className="flex flex-col divide-y divide-slate-200 dark:divide-slate-800 md:divide-none md:gap-3">
-                        {SETTINGS_SECTIONS.map((section) => (
-                            <Link
-                                key={section.href}
-                                href={section.href}
-                                className="group flex items-center gap-4 px-4 md:px-5 py-4 md:py-5 bg-white dark:bg-slate-900/50 md:border md:border-slate-200 dark:md:border-slate-800 md:rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:shadow-md transition-all"
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Support Contact Email</label>
+                            <input
+                                type="email"
+                                value={supportEmail}
+                                onChange={(e) => setSupportEmail(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                                placeholder="support@yourcompany.com"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Default Currency</label>
+                            <select
+                                value={defaultCurrency}
+                                onChange={(e) => setDefaultCurrency(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                                disabled={loading}
                             >
-                                {/* Icon */}
-                                <div className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${section.iconBg} transition-transform group-hover:scale-105`}>
-                                    <span className="material-symbols-outlined text-[24px]">{section.icon}</span>
-                                </div>
+                                <option value="ZAR">ZAR (South African Rand)</option>
+                                <option value="USD">USD (US Dollar)</option>
+                                <option value="GBP">GBP (British Pound)</option>
+                                <option value="EUR">EUR (Euro)</option>
+                            </select>
+                        </div>
+                    </div>
 
-                                {/* Text */}
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{section.title}</p>
-                                        {section.badge && (
-                                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-tighter ${section.badgeColor}`}>
-                                                {section.badge}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">{section.description}</p>
-                                </div>
-
-                                {/* Arrow */}
-                                <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0">
-                                    chevron_right
-                                </span>
-                            </Link>
-                        ))}
+                    {/* Mobile Save Button */}
+                    <div className="md:hidden mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+                        <button
+                            onClick={handleSave}
+                            disabled={saving || loading}
+                            className={clsx(
+                                "w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-bold text-white shadow-lg transition-all",
+                                saved ? "bg-emerald-500 shadow-emerald-500/20" : "bg-primary shadow-primary/20",
+                                (saving || loading) && "opacity-70"
+                            )}
+                        >
+                            <span className={clsx("material-symbols-outlined text-[18px]", saving && "animate-spin")}>
+                                {saved ? "check" : saving ? "progress_activity" : "save"}
+                            </span>
+                            {saved ? "Saved" : "Save General Settings"}
+                        </button>
                     </div>
                 </section>
 
@@ -124,7 +177,7 @@ export default function SettingsIndexPage() {
                             <span className="material-symbols-outlined text-primary text-[20px]">info</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white">URBANSMART-34 Payment SWITCH</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white uppercase truncate">{platformName}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">v1.0.0 · Yoco Gateway · SQLite (dev)</p>
                         </div>
                         <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-500 uppercase tracking-wider shrink-0">

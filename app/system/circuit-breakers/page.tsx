@@ -62,9 +62,18 @@ export default function CircuitBreakersPage() {
         return () => clearInterval(interval);
     }, []);
 
-    const handleRefresh = () => {
+    const handleRefresh = async () => {
         setRefreshing(true);
-        loadBreakers();
+        await new Promise(r => setTimeout(r, 600)); // UX delay to show spinning
+        await loadBreakers();
+    };
+
+    const handleManualTrip = (idx: number) => {
+        setBreakers(prev => prev.map((b, i) => i === idx ? { ...b, status: "OPEN", failures: 5 } : b));
+    };
+
+    const handleReset = (idx: number) => {
+        setBreakers(prev => prev.map((b, i) => i === idx ? { ...b, status: "CLOSED", failures: 0 } : b));
     };
 
     return (
@@ -153,10 +162,25 @@ export default function CircuitBreakersPage() {
                                     <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Failures</p>
                                     <p className="font-bold text-rose-500">{breaker.failures}</p>
                                 </div>
-                                <div>
-                                    <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Fallbacks</p>
-                                    <p className="font-bold text-amber-500">{breaker.fallbacks}</p>
+                                <div className="flex flex-col justify-between">
+                                    <div>
+                                        <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Fallbacks</p>
+                                        <p className="font-bold text-amber-500">{breaker.fallbacks}</p>
+                                    </div>
                                 </div>
+                            </div>
+                            <div className="mt-4 pl-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                                {breaker.status === "OPEN" ? (
+                                    <button onClick={() => handleReset(idx)} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 rounded-lg text-xs font-bold transition-colors">
+                                        <span className="material-symbols-outlined text-[14px]">restart_alt</span>
+                                        Reset Breaker
+                                    </button>
+                                ) : (
+                                    <button onClick={() => handleManualTrip(idx)} className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 rounded-lg text-xs font-bold transition-colors">
+                                        <span className="material-symbols-outlined text-[14px]">power_settings_new</span>
+                                        Manual Trip
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}

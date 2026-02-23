@@ -34,25 +34,25 @@ export async function GET() {
             let platformAmount: number | null = t.amount;
 
             if (t.status === "FAILED") {
-                type = "MATCHED";
-                note = "Transaction failed on platform. No settlement expected.";
+                type = "NOT_FOUND";
+                note = "Platform logged a failed transaction. Yoco has no record of it.";
                 yocoAmount = null;
-                platformAmount = null;
-            } else if (t.status === "PENDING" || !t.yocoChargeId) {
-                if (t.status === "SUCCESS") {
-                    type = "MATCHED";
-                    note = "Legacy/Manual success. No Yoco Charge ID recorded.";
-                    yocoAmount = t.amount;
-                } else {
-                    type = "MATCHED";
-                    note = "Transaction is pending. Awaiting completion.";
-                    yocoAmount = null;
-                    platformAmount = null;
-                }
+                platformAmount = t.amount;
+            } else if (t.status === "PENDING") {
+                type = "MISMATCH";
+                note = "Transaction is pending here but might have settled on Yoco. Needs manual sync.";
+                yocoAmount = t.amount;
+                platformAmount = t.amount;
+            } else if (!t.yocoChargeId && t.status === "SUCCESS") {
+                type = "NOT_FOUND";
+                note = "Successful transaction without Yoco charge ID. Missing integration link.";
+                yocoAmount = null;
+                platformAmount = t.amount;
             } else {
                 type = "MATCHED";
                 note = "Amounts match. Successfully settled.";
                 yocoAmount = t.amount;
+                platformAmount = t.amount;
             }
 
             return {
@@ -68,13 +68,32 @@ export async function GET() {
             };
         });
 
-        const discrepancyCount = items.filter(i => !i.resolved).length;
+        const discrepancyCount = items.filter((i) => !i.resolved).length;
+
+        // Calculate dynamic drift bars for the last 7 days
+        // Normally this would query Yoco API logs vs our logs per day
+        const driftBars = Array.from({ length: 7 }).map((_, i) => {
+            const dayTxs = transactions.slice(i * 3, i * 3 + 3); // Mock spread
+            const failing = dayTxs.filter((t) => t.status === "FAILED" || t.status === "PENDING").length;
+            const total = dayTxs.length || 1;
+            const errorRate = failing / total;
+
+            let color = "bg-primary";
+            if (errorRate > 0.5) color = "bg-rose-500";
+            else if (errorRate > 0) color = "bg-primary/40";
+
+            return {
+                h: `${Math.max(20, Math.min(100, 100 - (errorRate * 50)))}%`,
+                color
+            };
+        });
 
         return NextResponse.json({
             totalVolume,
             discrepancyCount,
             successCount,
             items,
+            driftBars
         });
     } catch {
         return NextResponse.json({
@@ -82,6 +101,7 @@ export async function GET() {
             discrepancyCount: 0,
             successCount: 0,
             items: [],
+            driftBars: []
         });
     }
 }

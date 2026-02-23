@@ -32,6 +32,29 @@ export default function AnalyticsPage() {
             .then((d) => { setData(d); setLoading(false); })
             .catch(() => setLoading(false));
     }, [range]);
+    const handleExportCSV = () => {
+        if (!data) return alert("No data available to export");
+
+        const headers = ["Metric", "Value"];
+        const csvRows = [
+            ["Report Range", range],
+            ["Total Volume (ZAR)", (data.totalVolume / 100).toFixed(2)],
+            ["Avg Ticket (ZAR)", (data.avgTicket / 100).toFixed(2)],
+            ["Success Rate", `${data.successRate.toFixed(1)}%`],
+            ["Success Count", data.successCount],
+            ["Failed Count", data.failedCount],
+            ["Pending Count", data.pendingCount],
+        ];
+
+        const csvString = [headers.join(","), ...csvRows.map(r => r.join(","))].join("\n");
+        const blob = new Blob([csvString], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `analytics_export_${range.toLowerCase()}_${new Date().toISOString().substring(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     const formatCurrency = (cents: number) =>
         `R ${(cents / 100).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -108,7 +131,7 @@ export default function AnalyticsPage() {
                             </button>
                         ))}
                     </div>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                         <span className="material-symbols-outlined text-[20px]">download</span>
                         Export
                     </button>
@@ -127,7 +150,7 @@ export default function AnalyticsPage() {
                         },
                         {
                             label: "Success Rate",
-                            value: loading ? "—" : `${(data?.successRate ?? 98.2).toFixed(1)}%`,
+                            value: loading ? "—" : `${(data?.successRate ?? 0).toFixed(1)}%`,
                             trend: 0.2,
                             up: false
                         },

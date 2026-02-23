@@ -15,10 +15,34 @@ interface LedgerRow {
 export default function LedgerPage() {
     const [activeStore, setActiveStore] = useState("All Stores");
     const [activeStatus, setActiveStatus] = useState("All");
+    const [reportPeriod, setReportPeriod] = useState("This Month");
     const [rows, setRows] = useState<LedgerRow[]>([]);
+    const [stores, setStores] = useState<{ name: string }[]>([]);
     const [totalRecords, setTotalRecords] = useState(0);
     const [totalVolume, setTotalVolume] = useState(0);
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetch("/api/stores")
+            .then(r => r.json())
+            .then(d => {
+                if (d.stores) setStores(d.stores);
+            });
+    }, []);
+
+    const handleExportCSV = () => {
+        if (!rows.length) return alert("No data to export");
+        const headers = ["ID", "Timestamp", "Store", "Amount", "Status", "Yoco Ref"];
+        const csvRows = rows.map(r => [r.id, r.timestamp, `"${r.storeId}"`, r.amount.toFixed(2), r.status, r.yocoRef || ""].join(","));
+        const csvString = [headers.join(","), ...csvRows].join("\n");
+        const blob = new Blob([csvString], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `ledger_export_${new Date().toISOString().substring(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -59,11 +83,11 @@ export default function LedgerPage() {
                     <p className="text-slate-500 dark:text-slate-400">View and export transaction history across all stores</p>
                 </div>
                 <div className="flex gap-2">
-                    <button className="btn btn-secondary flex items-center gap-2">
+                    <button onClick={() => document.getElementById("filters-section")?.scrollIntoView({ behavior: "smooth" })} className="btn btn-secondary flex items-center gap-2">
                         <span className="material-symbols-outlined">filter_list</span>
                         Filter
                     </button>
-                    <button className="btn btn-primary flex items-center gap-2">
+                    <button onClick={handleExportCSV} className="btn btn-primary flex items-center gap-2">
                         <span className="material-symbols-outlined">download</span>
                         Export
                     </button>
@@ -74,27 +98,31 @@ export default function LedgerPage() {
                 {/* Date Picker Section */}
                 <section>
                     <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 block px-4 md:px-0">Report Period</label>
-                    <div className="mx-4 md:mx-0 flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm cursor-pointer hover:border-primary/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined text-primary">calendar_month</span>
-                            <div>
-                                <p className="text-sm font-medium">Oct 1, 2023 - Oct 31, 2023</p>
-                                <p className="text-xs text-slate-500">31 Days selected</p>
-                            </div>
-                        </div>
-                        <span className="material-symbols-outlined text-slate-400">chevron_right</span>
+                    <div className="relative mx-4 md:mx-0">
+                        <select
+                            value={reportPeriod}
+                            onChange={(e) => setReportPeriod(e.target.value)}
+                            className="w-full appearance-none p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-medium cursor-pointer"
+                        >
+                            <option value="Today">Today</option>
+                            <option value="Last 7 Days">Last 7 Days</option>
+                            <option value="This Month">This Month</option>
+                            <option value="Last Month">Last Month</option>
+                            <option value="Year to Date">Year to Date</option>
+                        </select>
+                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">expand_more</span>
                     </div>
                 </section>
 
                 {/* Filters Section */}
-                <section className="space-y-4">
+                <section className="space-y-4" id="filters-section">
                     <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block px-4 md:px-0">Filters</label>
 
                     {/* Store Filter */}
                     <div className="space-y-2">
                         <p className="text-xs text-slate-400 px-4 md:px-0">Store Selection</p>
                         <div className="flex gap-2 overflow-x-auto hide-scrollbar px-4 md:px-0 pb-1">
-                            {["All Stores", "Store-A (CPT)", "Store-B (JHB)", "Online Portal"].map((store) => (
+                            {["All Stores", ...stores.map(s => s.name)].map((store) => (
                                 <button
                                     key={store}
                                     onClick={() => setActiveStore(store)}
@@ -154,8 +182,7 @@ export default function LedgerPage() {
                 {/* Preview Table */}
                 <section>
                     <div className="flex items-center justify-between mb-3 px-4 md:px-0">
-                        <h3 className="text-sm font-bold">Preview (Last 50 rows)</h3>
-                        <button className="text-xs text-primary font-semibold hover:underline">View Full Table</button>
+                        <h3 className="text-sm font-bold">Transaction Records</h3>
                     </div>
                     <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm mx-4 md:mx-0">
                         <table className="w-full text-left border-collapse min-w-[500px]">
@@ -202,9 +229,9 @@ export default function LedgerPage() {
             </main >
 
             {/* Export Action Sheet (Mobile Fixed, Desktop Hidden) */}
-            < div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 px-4 pt-4 pb-24 z-10 shadow-[0_-8px_30px_rgb(0,0,0,0.12)]" >
+            < div className="md:hidden fixed bottom-0 left-0 right-0 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 px-4 pt-4 pb-24 z-10 shadow-[0_-8px_30px_rgb(0,0,0,0.12)]" >
                 <div className="max-w-md mx-auto space-y-3">
-                    <button className="w-full h-14 bg-primary text-white rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-primary/25 active:scale-[0.98] transition-transform">
+                    <button onClick={handleExportCSV} className="w-full h-14 bg-primary text-white rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-primary/25 active:scale-[0.98] transition-transform">
                         <span className="material-symbols-outlined">csv</span>
                         Export as CSV (.csv)
                     </button>

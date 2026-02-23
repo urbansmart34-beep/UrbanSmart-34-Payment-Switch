@@ -60,3 +60,20 @@ export async function PUT(req: Request) {
         return NextResponse.json({ error: "Failed to update member" }, { status: 500 });
     }
 }
+
+export async function DELETE(req: Request) {
+    try {
+        const { searchParams } = new URL(req.url);
+        const id = searchParams.get("id");
+
+        if (!id) return NextResponse.json({ error: "Member ID is required" }, { status: 400 });
+
+        await prisma.teamMember.delete({
+            where: { id }
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        return NextResponse.json({ error: "Failed to remove member" }, { status: 500 });
+    }
+}

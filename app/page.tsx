@@ -61,10 +61,10 @@ export default async function Home() {
 
       {/* Quick Actions (Mobile + Desktop) */}
       <section className="flex gap-3">
-        <button className="flex-1 flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all">
+        <Link href="/settings/api" className="flex-1 flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all">
           <span className="material-symbols-outlined text-[20px]">key</span>
           Generate API Key
-        </button>
+        </Link>
         <Link href="/analytics" className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 py-3 rounded-xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 active:scale-[0.98] transition-all">
           <span className="material-symbols-outlined text-[20px]">bar_chart</span>
           View Reports

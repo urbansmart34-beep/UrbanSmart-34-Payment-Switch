@@ -47,6 +47,11 @@ export default function TeamPage() {
     const [roleFilter, setRoleFilter] = useState<RoleFilter>("All");
     const [sheet, setSheet] = useState<string | null>(null); // member id
     const [loading, setLoading] = useState(true);
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState("");
+    const [inviteName, setInviteName] = useState("");
+    const [inviteRole, setInviteRole] = useState<Role>("Developer");
+    const [inviting, setInviting] = useState(false);
 
     const loadMembers = async () => {
         try {
@@ -95,7 +100,47 @@ export default function TeamPage() {
         });
     };
 
+    const removeMember = async (memberId: string, memberName: string) => {
+        if (!confirm(`Are you sure you want to remove ${memberName} from the team?`)) return;
+
+        setMembers(prev => prev.filter(m => m.id !== memberId));
+
+        await fetch(`/api/team?id=${memberId}`, {
+            method: "DELETE",
+        });
+    };
+
     const sheetMember = members.find((m) => m.id === sheet);
+
+    const handleInvite = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setInviting(true);
+        try {
+            const res = await fetch("/api/team", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: inviteName,
+                    email: inviteEmail,
+                    role: inviteRole,
+                    permissions: { refunds: false, apiKeys: false }
+                })
+            });
+            if (res.ok) {
+                await loadMembers();
+                setIsInviteModalOpen(false);
+                setInviteName("");
+                setInviteEmail("");
+                setInviteRole("Developer");
+            } else {
+                alert("Failed to invite member.");
+            }
+        } catch (error) {
+            alert("Error inviting member.");
+        } finally {
+            setInviting(false);
+        }
+    };
 
     return (
         <div className="flex flex-col min-h-full">
@@ -106,7 +151,7 @@ export default function TeamPage() {
                         <span className="material-symbols-outlined text-primary">shield_person</span>
                         <h1 className="text-xl font-bold tracking-tight">Team</h1>
                     </div>
-                    <button className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1 transition-colors shadow-sm shadow-primary/20">
+                    <button onClick={() => setIsInviteModalOpen(true)} className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1 transition-colors shadow-sm shadow-primary/20">
                         <span className="material-symbols-outlined text-[20px]">person_add</span>
                         Invite
                     </button>
@@ -206,6 +251,17 @@ export default function TeamPage() {
                                     </div>
                                 ))}
                             </div>
+                            {canEdit && (
+                                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                                    <button
+                                        onClick={() => removeMember(member.id, member.name)}
+                                        className="text-xs font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 transition-colors flex items-center gap-1"
+                                    >
+                                        <span className="material-symbols-outlined text-[14px]">person_remove</span>
+                                        Remove Member
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     );
                 })}
@@ -250,6 +306,74 @@ export default function TeamPage() {
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* Invite Modal */}
+            {isInviteModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <form onSubmit={handleInvite}>
+                            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                                <h2 className="text-lg font-bold">Invite Team Member</h2>
+                                <button type="button" onClick={() => setIsInviteModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Name</label>
+                                    <input
+                                        required
+                                        value={inviteName}
+                                        onChange={(e) => setInviteName(e.target.value)}
+                                        className="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium"
+                                        placeholder="e.g. Jane Doe"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
+                                    <input
+                                        required
+                                        type="email"
+                                        value={inviteEmail}
+                                        onChange={(e) => setInviteEmail(e.target.value)}
+                                        className="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium"
+                                        placeholder="e.g. jane@company.com"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Role</label>
+                                    <select
+                                        value={inviteRole}
+                                        onChange={(e) => setInviteRole(e.target.value as Readonly<Role>)}
+                                        className="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium appearance-none"
+                                    >
+                                        <option value="Admin">Admin</option>
+                                        <option value="Developer">Developer</option>
+                                        <option value="Auditor">Auditor</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsInviteModalOpen(false)}
+                                    className="px-5 py-2.5 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={inviting}
+                                    className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-primary text-white hover:bg-primary/90 transition-all disabled:opacity-60 flex items-center gap-2"
+                                >
+                                    {inviting && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
+                                    {inviting ? "Sending Invite..." : "Send Invite"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     );

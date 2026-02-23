@@ -199,7 +199,6 @@ export default function FraudPage() {
                 <section className="px-4 md:px-0">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold">Recent Alerts</h3>
-                        <button className="text-primary text-sm font-semibold hover:underline">View All</button>
                     </div>
                     <div className="space-y-3">
                         {alerts.length === 0 ? (

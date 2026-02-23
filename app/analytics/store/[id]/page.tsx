@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useEffect } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 
@@ -10,27 +10,29 @@ export default function StoreAnalyticsPage({ params }: { params: Promise<{ id: s
     const [timeRange, setTimeRange] = useState("Last 30 Days");
     const [filter, setFilter] = useState("All");
 
-    // Mock data for the specific store
-    const storeName = id.includes("cpt") ? "Cape Town Roastery" : id.includes("jhb") ? "JHB Central Store" : "Store A";
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
 
-    // Calculate mock volume based on range
-    const baseVolume = 452300;
-    const totalVolume = timeRange === "Last 30 Days" ? baseVolume : baseVolume / 4;
+    useEffect(() => {
+        setLoading(true);
+        fetch(`/api/analytics/store/${id}`)
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    setData(res);
+                }
+            })
+            .catch(e => console.error(e))
+            .finally(() => setLoading(false));
+    }, [id]);
 
-    const transactions = [
-        { id: 1, name: "Sarah Jenkins", time: "Today, 14:24", card: "visa **** 4242", amount: 1250, status: "success" },
-        { id: 2, name: "Marcus Thorne", time: "Today, 12:10", card: "mastercard **** 8901", amount: 842, status: "failed" },
-        { id: 3, name: "Elena Rodriguez", time: "Today, 09:45", card: "visa **** 1122", amount: 2100, status: "success" },
-        { id: 4, name: "Tech Supplies Ltd", time: "Yesterday, 18:30", card: "amex **** 3004", amount: 5400, status: "pending" },
-    ];
-
-    const filteredTransactions = transactions.filter(tx => {
+    const filteredTransactions = data?.transactions?.filter((tx: any) => {
         if (filter === "All") return true;
-        if (filter === "Success") return tx.status === "success";
-        if (filter === "Failed") return tx.status === "failed";
-        if (filter === "Refunds") return tx.status === "refunded"; // None in mock, but for UI completeness
+        if (filter === "Success") return tx.status === "SUCCESS";
+        if (filter === "Failed") return tx.status === "FAILED";
+        if (filter === "Refunds") return tx.status === "REFUNDED";
         return true;
-    });
+    }) || [];
 
     return (
         <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display pb-32">
@@ -43,11 +45,15 @@ export default function StoreAnalyticsPage({ params }: { params: Promise<{ id: s
                         </Link>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h1 className="text-xl font-bold tracking-tight">{storeName}</h1>
-                                <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">Active</span>
+                                <h1 className="text-xl font-bold tracking-tight">{loading ? "Loading..." : data?.store?.name || "Store Details"}</h1>
+                                {data?.store?.isActive && (
+                                    <>
+                                        <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">Active</span>
+                                    </>
+                                )}
                             </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">MID: {id.toUpperCase()}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">ID: {id.substring(0, 12).toUpperCase()}</p>
                         </div>
                     </div>
                     <button className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
@@ -60,21 +66,18 @@ export default function StoreAnalyticsPage({ params }: { params: Promise<{ id: s
                 {/* KPI Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     <div className="col-span-2 flex flex-col gap-1 rounded-xl p-5 bg-primary text-white shadow-lg shadow-primary/20">
-                        <p className="text-xs font-medium opacity-80 uppercase tracking-widest">Total Volume ({timeRange === "Last 30 Days" ? "MTD" : "7D"})</p>
+                        <p className="text-xs font-medium opacity-80 uppercase tracking-widest">Total Volume</p>
                         <div className="flex items-baseline gap-2 mt-1">
-                            <p className="text-3xl font-bold">R {(totalVolume / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                            <p className="text-xs font-bold bg-white/20 px-1.5 py-0.5 rounded text-white">+12.5%</p>
+                            <p className="text-3xl font-bold">R {loading ? "0.00" : ((data?.kpis?.totalVolume || 0) / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}</p>
                         </div>
                     </div>
                     <div className="flex flex-col gap-1 rounded-xl p-4 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 shadow-sm">
                         <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Avg. Transaction</p>
-                        <p className="text-lg font-bold mt-1">R 1,250.00</p>
-                        <p className="text-[10px] font-medium text-emerald-500 mt-1">+2.1%</p>
+                        <p className="text-lg font-bold mt-1">R {loading ? "0.00" : ((data?.kpis?.avgTicket || 0) / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}</p>
                     </div>
                     <div className="flex flex-col gap-1 rounded-xl p-4 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 shadow-sm">
                         <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Success Rate</p>
-                        <p className="text-lg font-bold mt-1">94.2%</p>
-                        <p className="text-[10px] font-medium text-rose-500 mt-1">-0.5%</p>
+                        <p className="text-lg font-bold mt-1">{loading ? "0" : (data?.kpis?.successRate || 0).toFixed(1)}%</p>
                     </div>
                 </div>
 
@@ -124,32 +127,15 @@ export default function StoreAnalyticsPage({ params }: { params: Promise<{ id: s
                                         <span className="material-symbols-outlined text-lg">key</span>
                                     </div>
                                     <div>
-                                        <p className="text-xs font-bold">Public Key</p>
-                                        <p className="text-xs text-slate-500 font-mono">pk_live_51M...v9jK</p>
+                                        <p className="text-xs font-bold">Store API Key</p>
+                                        <p className="text-xs text-slate-500 font-mono">
+                                            {loading ? "Loading..." : data?.store?.apiKey ? `••••••••••••${data.store.apiKey.slice(-4)}` : "No Key"}
+                                        </p>
                                     </div>
                                 </div>
                                 <button className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-primary transition-colors">
                                     <span className="material-symbols-outlined text-sm">content_copy</span>
                                 </button>
-                            </div>
-                            <div className="p-4 flex items-center justify-between bg-slate-50 dark:bg-slate-800/20">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded bg-rose-500/10 flex items-center justify-center text-rose-500">
-                                        <span className="material-symbols-outlined text-lg">lock</span>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold">Secret Key</p>
-                                        <p className="text-xs text-slate-500 font-mono">•••••••••••••••••••••</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-1">
-                                    <button className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-primary transition-colors">
-                                        <span className="material-symbols-outlined text-sm">visibility</span>
-                                    </button>
-                                    <button className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-primary transition-colors">
-                                        <span className="material-symbols-outlined text-sm">content_copy</span>
-                                    </button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -181,19 +167,19 @@ export default function StoreAnalyticsPage({ params }: { params: Promise<{ id: s
 
                         {/* List */}
                         <div className="space-y-2">
-                            {filteredTransactions.map((tx) => (
+                            {filteredTransactions.map((tx: any) => (
                                 <Link href={`/transactions/88${tx.id}`} key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-primary/40 transition-colors group cursor-pointer">
                                     <div className="flex items-center gap-3">
                                         <div className={clsx(
                                             "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
-                                            tx.status === "success" && "bg-emerald-500/10 text-emerald-500",
-                                            tx.status === "failed" && "bg-rose-500/10 text-rose-500",
-                                            tx.status === "pending" && "bg-amber-500/10 text-amber-500",
+                                            tx.status === "SUCCESS" && "bg-emerald-500/10 text-emerald-500",
+                                            tx.status === "FAILED" && "bg-rose-500/10 text-rose-500",
+                                            tx.status === "PENDING" && "bg-amber-500/10 text-amber-500",
                                         )}>
                                             <span className="material-symbols-outlined text-lg">
-                                                {tx.status === "success" && "check_circle"}
-                                                {tx.status === "failed" && "cancel"}
-                                                {tx.status === "pending" && "history"}
+                                                {tx.status === "SUCCESS" && "check_circle"}
+                                                {tx.status === "FAILED" && "cancel"}
+                                                {tx.status === "PENDING" && "history"}
                                             </span>
                                         </div>
                                         <div>

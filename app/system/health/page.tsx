@@ -41,9 +41,6 @@ const LOG_STYLES = {
 };
 
 export default function SystemHealthPage() {
-    const [failureCount, setFailureCount] = useState(0);
-    const [circuitState, setCircuitState] = useState<"Closed" | "Open" | "Half-Open">("Closed");
-    const [tripping, setTripping] = useState(false);
     const [health, setHealth] = useState<HealthData>(FALLBACK);
     const [loading, setLoading] = useState(true);
 
@@ -54,22 +51,6 @@ export default function SystemHealthPage() {
             .catch(() => { /* keep fallback */ })
             .finally(() => setLoading(false));
     }, []);
-
-    const handleManualTrip = async () => {
-        setTripping(true);
-        await new Promise((r) => setTimeout(r, 800));
-        setCircuitState("Open");
-        setFailureCount(5);
-        setTripping(false);
-    };
-
-    const handleReset = async () => {
-        setTripping(true);
-        await new Promise((r) => setTimeout(r, 800));
-        setCircuitState("Closed");
-        setFailureCount(0);
-        setTripping(false);
-    };
 
     const metrics = [
         { label: "Yoco API", value: loading ? "..." : health.yocoUptime, icon: "language", trend: "trending_up", trendVal: "Live", trendUp: true },
@@ -86,6 +67,26 @@ export default function SystemHealthPage() {
         { id: "2", type: "retry", title: "Monitoring Active", detail: `Real-time health check completed. DB latency: ${health.dbLatency}. All endpoints reporting normal.`, time: new Date().toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) },
         { id: "3", type: loading ? "retry" : health.successRate >= "90%" ? "success" : "error", title: loading ? "Loading..." : "Success Rate Check", detail: `Current success rate is ${health.successRate}. ${parseFloat(health.successRate) >= 95 ? "All systems nominal." : "Investigate failing routes."}`, time: new Date().toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) },
     ];
+
+    const handleExportLogs = () => {
+        if (dynamicLogs.length === 0) return alert("No logs to export");
+        const headers = ["ID", "Type", "Title", "Detail", "Time"];
+        const rows = dynamicLogs.map(l => [
+            l.id,
+            l.type,
+            `"${l.title}"`,
+            `"${l.detail}"`,
+            `"${l.time}"`
+        ]);
+        const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `system_health_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     return (
         <div className="flex flex-col min-h-full pb-8">
@@ -127,7 +128,7 @@ export default function SystemHealthPage() {
                     </div>
                     <p className="text-slate-500 dark:text-slate-400">Real-time resilience & infrastructure logs</p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                <button onClick={handleExportLogs} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                     <span className="material-symbols-outlined text-[20px]">download</span>
                     Export Logs
                 </button>
@@ -149,68 +150,6 @@ export default function SystemHealthPage() {
                             </div>
                         </div>
                     ))}
-                </section>
-
-                {/* Circuit Breaker Card */}
-                <section>
-                    <div className={clsx(
-                        "rounded-2xl p-5 text-white shadow-lg transition-colors",
-                        circuitState === "Open"
-                            ? "bg-rose-600 shadow-rose-500/20"
-                            : "bg-primary shadow-primary/20"
-                    )}>
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Layer 3 Resilience</span>
-                                <h3 className="text-lg font-bold">Circuit: {circuitState}</h3>
-                            </div>
-                            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-md">
-                                <span className="material-symbols-outlined">security</span>
-                            </div>
-                        </div>
-                        <div className="mb-4 space-y-2">
-                            <div className="flex justify-between text-xs font-medium">
-                                <span className="opacity-80">Failure Threshold</span>
-                                <span className="font-bold">{failureCount} / 5 Timeouts</span>
-                            </div>
-                            <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-white rounded-full transition-all duration-700"
-                                    style={{ width: `${(failureCount / 5) * 100}%` }}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="text-[11px] leading-snug opacity-90 flex-1">
-                                {circuitState === "Open"
-                                    ? "Circuit is OPEN. Traffic is being blocked pending auto-reset or manual intervention."
-                                    : "Current status is normal. Traffic is routing directly to Yoco production endpoints."}
-                            </div>
-                            {circuitState === "Open" ? (
-                                <button
-                                    onClick={handleReset}
-                                    disabled={tripping}
-                                    className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-xs font-bold text-rose-600 shadow-sm active:scale-95 disabled:opacity-60 transition-transform"
-                                >
-                                    <span className={clsx("material-symbols-outlined text-sm", tripping && "animate-spin")}>
-                                        {tripping ? "progress_activity" : "restart_alt"}
-                                    </span>
-                                    Reset
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={handleManualTrip}
-                                    disabled={tripping}
-                                    className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-xs font-bold text-primary shadow-sm active:scale-95 disabled:opacity-60 transition-transform"
-                                >
-                                    <span className={clsx("material-symbols-outlined text-sm", tripping && "animate-spin")}>
-                                        {tripping ? "progress_activity" : "power_settings_new"}
-                                    </span>
-                                    Manual Trip
-                                </button>
-                            )}
-                        </div>
-                    </div>
                 </section>
 
                 {/* Throughput Sparkline */}
@@ -239,7 +178,6 @@ export default function SystemHealthPage() {
                 <section>
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Resilience Logs</h3>
-                        <button className="text-xs font-bold text-primary hover:underline">View All</button>
                     </div>
                     <div className="space-y-4">
                         {dynamicLogs.map((log, i) => {

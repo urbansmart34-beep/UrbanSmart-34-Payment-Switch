@@ -10,6 +10,7 @@ export default function FraudRulesPage() {
     const [autoReject, setAutoReject] = useState(true);
     const [blockedCountries, setBlockedCountries] = useState(["Nigeria", "North Korea", "Russia"]);
     const [saving, setSaving] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
     const [isSimulating, setIsSimulating] = useState(false);
 
     const removeCountry = (c: string) => {
@@ -52,14 +53,31 @@ export default function FraudRulesPage() {
             alert("Failed to save rules.");
         } finally {
             setSaving(false);
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 2500);
         }
     };
 
     const runSimulation = async () => {
         setIsSimulating(true);
-        await new Promise(r => setTimeout(r, 2000));
-        setIsSimulating(false);
-        alert("Simulation complete! These rules would have blocked 14 transactions out of 1,204 over the last 24 hours.");
+        try {
+            const res = await fetch("/api/fraud/simulate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rateLimit, maxAmount, autoReject, blockedCountries })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                alert(`Simulation complete!\n\nThese rules would have blocked ${data.blocked} transactions out of ${data.totalChecked} over the last 24 hours.`);
+            } else {
+                alert("Failed to run simulation against live data.");
+            }
+        } catch (e) {
+            alert("Network error during simulation.");
+        } finally {
+            setIsSimulating(false);
+        }
     };
 
     return (
@@ -91,12 +109,15 @@ export default function FraudRulesPage() {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg font-semibold text-sm hover:opacity-90 disabled:opacity-60 transition-opacity shadow-lg shadow-primary/20"
+                    className={clsx(
+                        "flex items-center gap-2 px-5 py-2.5 text-white rounded-lg font-semibold text-sm hover:opacity-90 disabled:opacity-60 transition-all shadow-lg",
+                        saveSuccess ? "bg-emerald-500 shadow-emerald-500/20" : "bg-primary shadow-primary/20"
+                    )}
                 >
                     <span className={clsx("material-symbols-outlined text-[18px]", saving && "animate-spin")}>
-                        {saving ? "progress_activity" : "save"}
+                        {saving ? "progress_activity" : saveSuccess ? "check" : "save"}
                     </span>
-                    {saving ? "Saving..." : "Save Configuration"}
+                    {saving ? "Saving..." : saveSuccess ? "Saved!" : "Save Configuration"}
                 </button>
             </div>
 

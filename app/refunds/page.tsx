@@ -64,11 +64,26 @@ export default function RefundsPage() {
             .catch(() => setLoading(false));
     }, []);
 
-    const handleRetry = async (refundId: string) => {
+    const handleRetry = async (refundId: string, txId: string) => {
         setRetrying(refundId);
-        await new Promise((r) => setTimeout(r, 1500)); // Simulate retry
-        setRefunds((prev) => prev.map((r) => r.id === refundId ? { ...r, status: "PROCESSING" } : r));
-        setRetrying(null);
+        try {
+            const res = await fetch("/api/refunds", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ transactionId: txId })
+            });
+            if (res.ok) {
+                const refreshed = await fetch("/api/refunds").then((r) => r.json());
+                setRefunds(refreshed.refunds || []);
+            } else {
+                const data = await res.json();
+                alert(data.error || "Failed to retry refund");
+            }
+        } catch (e) {
+            alert("Network error.");
+        } finally {
+            setRetrying(null);
+        }
     };
 
     const handleCreateRefund = () => {
@@ -103,9 +118,10 @@ export default function RefundsPage() {
     const filtered = refunds.filter((r) => {
         const matchFilter = filter === "ALL" || r.status === filter;
         const matchSearch = !search ||
-            r.txId.toLowerCase().includes(search.toLowerCase()) ||
-            r.storeName.toLowerCase().includes(search.toLowerCase()) ||
-            (r.yocoRefundId?.toLowerCase().includes(search.toLowerCase()) ?? false);
+            (r.txId?.toLowerCase() || "").includes(search.toLowerCase()) ||
+            (r.storeName?.toLowerCase() || "").includes(search.toLowerCase()) ||
+            (r.yocoRefundId?.toLowerCase() || "").includes(search.toLowerCase()) ||
+            (r.errorReason?.toLowerCase() || "").includes(search.toLowerCase());
         return matchFilter && matchSearch;
     });
 
@@ -291,7 +307,7 @@ export default function RefundsPage() {
                                                 {refund.errorReason || "Refund Failed"}
                                             </p>
                                             <button
-                                                onClick={() => handleRetry(refund.id)}
+                                                onClick={() => handleRetry(refund.id, refund.txId)}
                                                 disabled={retrying === refund.id}
                                                 className="text-xs font-bold text-primary flex items-center gap-1 hover:underline disabled:opacity-60"
                                             >
@@ -324,12 +340,7 @@ export default function RefundsPage() {
                 )}
             </div>
 
-            {/* FAB - Manual Override */}
-            <div className="fixed bottom-24 right-6 z-40 md:hidden">
-                <button className="bg-primary shadow-xl shadow-primary/30 w-14 h-14 rounded-full flex items-center justify-center text-white active:scale-95 transition-transform">
-                    <span className="material-symbols-outlined text-[28px]">published_with_changes</span>
-                </button>
-            </div>
+
             {/* Create Refund Modal */}
             {showCreateModal && (
                 <>
