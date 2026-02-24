@@ -46,14 +46,14 @@ export async function GET(request: Request) {
                 where: { id: txId },
                 data: { status: 'SUCCESS' },
             });
-            await dispatchWebhooks(successTx.id, "payment.succeeded", successTx);
+            dispatchWebhooks(successTx.id, "payment.succeeded", successTx).catch(console.error);
             return NextResponse.json({ success: true, status: 'SUCCESS' });
         } else if (yocoData.status === 'failed') {
             const failedTx = await prisma.transaction.update({
                 where: { id: txId },
                 data: { status: 'FAILED' },
             });
-            await dispatchWebhooks(failedTx.id, "payment.failed", failedTx);
+            dispatchWebhooks(failedTx.id, "payment.failed", failedTx).catch(console.error);
             return NextResponse.json({ success: false, status: 'FAILED' });
         }
 

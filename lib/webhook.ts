@@ -47,6 +47,11 @@ export async function dispatchWebhooks(eventId: string, eventType: WebhookEvent,
             data: payloadData
         };
 
+        // Cryptographically sign the payload so client stores can verify it wasn't intercepted/spoofed
+        const payloadString = JSON.stringify(payload);
+        const secret = process.env.WEBHOOK_SECRET || 'urbansmart_default_secret_123';
+        const signature = crypto.createHmac('sha256', secret).update(payloadString).digest('hex');
+
         const dispatchPromises = targetEndpoints.map(async (endpoint) => {
             const start = Date.now();
             let status = "failed";
@@ -59,9 +64,9 @@ export async function dispatchWebhooks(eventId: string, eventType: WebhookEvent,
                     headers: {
                         'Content-Type': 'application/json',
                         'User-Agent': 'UrbanSmart-Switch/1.0',
-                        'X-UrbanSmart-Signature': 'TODO:HmacSignature' // Can be implemented if needed
+                        'X-UrbanSmart-Signature': signature
                     },
-                    body: JSON.stringify(payload),
+                    body: payloadString,
                     // Keep timeout relatively short to not block the system indefinitely
                     signal: AbortSignal.timeout(5000)
                 });

@@ -1,7 +1,8 @@
 import CircuitBreaker from 'opossum';
+import { fetchWithRetry } from '@/lib/retry';
 
 const performYocoCharge = async (payload: unknown) => {
-    const response = await fetch('https://payments.yoco.com/api/checkouts', {
+    const response = await fetchWithRetry('https://payments.yoco.com/api/checkouts', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -22,7 +23,7 @@ const performYocoCharge = async (payload: unknown) => {
 };
 
 const options = {
-    timeout: 5000, // If function takes longer than 5 seconds, trigger failure
+    timeout: 15000, // Increased to 15s to allow for exponential backoff retries before hard-failing
     errorThresholdPercentage: 50, // When 50% of requests fail, trip the breaker
     resetTimeout: 30000 // After 30 seconds, try again.
 };

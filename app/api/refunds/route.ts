@@ -79,7 +79,7 @@ export async function POST(req: Request) {
                     status: "REQUESTED"
                 }
             });
-            await dispatchWebhooks(refund.id, "refund.requested", refund);
+            dispatchWebhooks(refund.id, "refund.requested", refund).catch(console.error);
         }
 
         // Connect to Yoco Refund API
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
                 where: { id: refund.id },
                 data: { status: "FAILED", errorReason: "Missing Yoco Charge ID" }
             });
-            await dispatchWebhooks(failedRefund.id, "refund.failed", failedRefund);
+            dispatchWebhooks(failedRefund.id, "refund.failed", failedRefund).catch(console.error);
             return NextResponse.json({ error: "Cannot refund: Original charge ID is missing" }, { status: 400 });
         }
 
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
                 where: { id: refund.id },
                 data: { status: "FAILED", errorReason: yocoData.message || "Yoco API Error" }
             });
-            await dispatchWebhooks(failedRefund.id, "refund.failed", failedRefund);
+            dispatchWebhooks(failedRefund.id, "refund.failed", failedRefund).catch(console.error);
             return NextResponse.json({ error: yocoData.message || "Failed to process refund with Yoco" }, { status: 400 });
         }
 
@@ -128,7 +128,7 @@ export async function POST(req: Request) {
             }
         });
 
-        await dispatchWebhooks(finalRefund.id, "refund.completed", finalRefund);
+        dispatchWebhooks(finalRefund.id, "refund.completed", finalRefund).catch(console.error);
 
         return NextResponse.json({ refund: finalRefund });
     } catch (error) {
