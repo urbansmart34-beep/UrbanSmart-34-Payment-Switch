@@ -15,7 +15,10 @@ const performYocoCharge = async (payload: unknown) => {
         if (response.status >= 500) {
             throw new Error(`Yoco API Server Error: ${response.status}`);
         }
-        // 4xx errors are "success" in terms of circuit breaker (client error, not service down)
+        if (response.status === 401 || response.status === 403) {
+            throw new Error(`Yoco API Authentication Error: ${response.status}`);
+        }
+        // Other 4xx errors (like bad requests/invalid card) are "success" in terms of circuit breaker
         return response;
     }
 

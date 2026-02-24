@@ -143,11 +143,19 @@ export async function POST(request: Request) {
         };
 
         const tryProcessor = async (processor: PaymentProcessor): Promise<Response> => {
+            let res: Response;
             if (processor === 'YOCO') {
-                return await yocoBreaker.fire(payload) as Response;
+                res = await yocoBreaker.fire(payload) as Response;
             } else {
-                return await northBreaker.fire(payload) as Response;
+                res = await northBreaker.fire(payload) as Response;
             }
+
+            // If the circuit breaker tripped and returned its 503 fallback, throw to trigger failover
+            if (res.status === 503) {
+                throw new Error(`${processor} API Circuit Breaker Tripped`);
+            }
+
+            return res;
         }
 
         // 5. Execute Payment with Automatic Failover

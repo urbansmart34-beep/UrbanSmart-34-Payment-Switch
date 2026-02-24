@@ -1,0 +1,21 @@
+﻿Fetching an active store...
+Simulating transaction for store: UrbanSmart Demo Store (811298f2-31aa-4e90-9071-41999bfe47a0)
+
+Sending POST request to http://localhost:3000/api/process-payment...
+
+Response received in 529ms:
+Status: 402
+{
+  success: false,
+  error: 'Payment Declined',
+  details: {
+    timestamp: '2026-02-24T11:59:56.080+00:00',
+    path: '/checkouts',
+    status: 403,
+    error: 'Forbidden',
+    requestId: 'ed00c72a-20097',
+    message: 'A key is required, but has not been specified.'
+  }
+}
+
+Γ¥î FAILOVER DID NOT TRIGGER. Transaction was handled by: Unknown

@@ -28,6 +28,7 @@ model Transaction {
   storeId     String
   store       Store    @relation(fields: [storeId], references: [id])
   refunds     Refund[]
+  discrepancies Discrepancy[]
   metadata    String?  // JSON string for extra info
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -82,4 +83,17 @@ model TeamMember {
   permissions String   // JSON string
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Discrepancy {
+  id                String       @id @default(uuid())
+  processor         String       // 'YOCO', 'NORTH'
+  processorChargeId String
+  type              String       // 'AMOUNT_MISMATCH', 'STATUS_MISMATCH', 'MISSING_IN_LEDGER'
+  details           String       // JSON string of the mismatch specifics
+  resolved          Boolean      @default(false)
+  transactionId     String?      // Nullable if the transaction strictly exists at processor but not in ledger
+  transaction       Transaction? @relation(fields: [transactionId], references: [id])
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 }

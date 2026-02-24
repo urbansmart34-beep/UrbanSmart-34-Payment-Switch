@@ -1,0 +1,15 @@
+﻿Fetching an active store...
+Simulating transaction for store: UrbanSmart Demo Store (811298f2-31aa-4e90-9071-41999bfe47a0)
+
+Sending POST request to http://localhost:3000/api/process-payment...
+
+Response received in 1382ms:
+Status: 200
+{
+  success: true,
+  transactionId: '9f211c60-69c0-4981-99a5-4c9b90bdccc3',
+  status: 'PENDING',
+  checkoutUrl: 'http://localhost:3000/payment/success?tx=9f211c60-69c0-4981-99a5-4c9b90bdccc3'
+}
+
+Γ¥î FAILOVER DID NOT TRIGGER. Transaction was handled by: Unknown

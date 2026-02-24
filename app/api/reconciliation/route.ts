@@ -22,55 +22,39 @@ export async function GET() {
         const failedCount = transactions.filter((t: { status: string }) => t.status === "FAILED").length;
         const successCount = transactions.filter((t: { status: string }) => t.status === "SUCCESS").length;
 
-        // Build discrepancy items from real transactions:
-        // - FAILED = MISMATCH (platform has record, Yoco did not settle)
-        // - PENDING = NOT_FOUND on Yoco side (no yocoChargeId)
-        // - SUCCESS w/ no yocoChargeId = NOT_FOUND
-        // - SUCCESS w/ yocoChargeId = MATCHED
-        const items = transactions.slice(0, 10).map((t) => {
-            let type: "MISMATCH" | "NOT_FOUND" | "MATCHED";
-            let note: string;
-            let yocoAmount: number | null;
-            let platformAmount: number | null = t.amount;
-
-            if (t.status === "FAILED") {
-                type = "NOT_FOUND";
-                note = "Platform logged a failed transaction. Yoco has no record of it.";
-                yocoAmount = null;
-                platformAmount = t.amount;
-            } else if (t.status === "PENDING") {
-                type = "MISMATCH";
-                note = "Transaction is pending here but might have settled on Yoco. Needs manual sync.";
-                yocoAmount = t.amount;
-                platformAmount = t.amount;
-            } else if (!t.yocoChargeId && t.status === "SUCCESS") {
-                type = "NOT_FOUND";
-                note = "Successful transaction without Yoco charge ID. Missing integration link.";
-                yocoAmount = null;
-                platformAmount = t.amount;
-            } else {
-                type = "MATCHED";
-                note = "Amounts match. Successfully settled.";
-                yocoAmount = t.amount;
-                platformAmount = t.amount;
+        // Fetch live discrepancies from the database
+        const discrepancies = await prisma.discrepancy.findMany({
+            orderBy: { createdAt: "desc" },
+            take: 50,
+            include: {
+                transaction: {
+                    include: { store: { select: { name: true } } }
+                }
             }
+        });
+
+        // Map them to the UI's expected format
+        const items = discrepancies.map((d: any) => {
+            const parsedDetails = JSON.parse(d.details || '{}');
+            let note = parsedDetails.message || "Mismatch detected.";
 
             return {
-                id: t.id,
-                chargeId: t.yocoChargeId ?? `TXN_${t.id.slice(0, 8).toUpperCase()}`,
-                date: formatDate(new Date(t.createdAt)),
-                type,
-                platformAmount,
-                yocoAmount,
+                id: d.id, // Using discrepancy ID for UI keys
+                chargeId: d.processorChargeId,
+                date: formatDate(new Date(d.createdAt)),
+                type: d.type === 'MISSING_IN_LEDGER' ? 'NOT_FOUND' : 'MISMATCH', // Adapting DB types to UI chips
+                platformAmount: parsedDetails.ledgerAmount || d.transaction?.amount || null,
+                yocoAmount: parsedDetails.processorAmount || null,
                 note,
-                resolved: type === "MATCHED",
-                storeName: t.store?.name ?? "Unknown Store",
+                resolved: d.resolved,
+                storeName: d.transaction?.store?.name ?? "Unknown Store",
+                processor: d.processor
             };
         });
 
-        const discrepancyCount = items.filter((i) => !i.resolved).length;
+        const discrepancyCount = items.filter((i: any) => !i.resolved).length;
 
-        // Calculate dynamic drift bars for the last 7 days
+        // Dynamic drift bars (concept unchanged for visual dashboard flair)
         // Normally this would query Yoco API logs vs our logs per day
         const driftBars = Array.from({ length: 7 }).map((_, i) => {
             const dayTxs = transactions.slice(i * 3, i * 3 + 3); // Mock spread
