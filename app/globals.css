@@ -1,17 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f6f8;
-  --foreground: #101622;
-  --primary: #135bec;
-  --background-light: #f6f6f8;
-  --background-dark: #101622;
+  --background: #f8fafc;
+  --foreground: #101522;
+  --primary: #1c59f2;
+  --background-light: #f8fafc;
+  --background-dark: #0f172a;
+  --card-dark: #1e293b;
+  --border-dark: #334155;
+  --text-secondary: #94a3b8;
 }
 
 @theme {
   --color-primary: var(--primary);
   --color-background-light: var(--background-light);
   --color-background-dark: var(--background-dark);
+  --color-card-dark: var(--card-dark);
+  --color-border-dark: var(--border-dark);
+  --color-text-secondary: var(--text-secondary);
 
   --font-display: var(--font-inter), sans-serif;
 
@@ -22,10 +28,12 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #101622;
-    --foreground: #f6f6f8;
+    --background: var(--background-dark);
+    --foreground: #f5f6f8;
   }
 }
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 body {
   background: var(--background);

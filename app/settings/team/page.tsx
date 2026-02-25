@@ -143,128 +143,141 @@ export default function TeamPage() {
     };
 
     return (
-        <div className="flex flex-col min-h-full">
-            {/* Header */}
-            <div className="sticky top-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 mb-4 md:-mx-0 -mx-4 px-4 pt-4 pb-4">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary">shield_person</span>
-                        <h1 className="text-xl font-bold tracking-tight">Team</h1>
+        <div className="flex-1 flex flex-col h-full overflow-hidden bg-background-light dark:bg-background-dark">
+            {/* Header Area */}
+            <header className="flex flex-col gap-6 px-4 md:px-8 py-6 md:py-8 shrink-0">
+                <div className="flex flex-wrap justify-between items-end gap-4">
+                    <div className="flex flex-col gap-1">
+                        <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">User Access Control</h2>
+                        <p className="text-slate-500 dark:text-slate-400">Manage platform users, roles, and security settings.</p>
                     </div>
-                    <button onClick={() => setIsInviteModalOpen(true)} className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1 transition-colors shadow-sm shadow-primary/20">
-                        <span className="material-symbols-outlined text-[20px]">person_add</span>
-                        Invite
+                    <button onClick={() => setIsInviteModalOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary hover:bg-blue-600 text-white px-5 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark shadow-sm">
+                        <span className="material-symbols-outlined text-lg">add</span>
+                        Invite New User
                     </button>
                 </div>
-                {/* Search */}
-                <div className="relative mb-3">
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
-                    <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full bg-slate-100 dark:bg-slate-900 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-slate-500"
-                        placeholder="Search members..."
-                    />
+                {/* Tabs */}
+                <div className="border-b border-slate-200 dark:border-slate-700">
+                    <nav aria-label="Tabs" className="-mb-px flex space-x-8">
+                        <a aria-current="page" className="border-primary text-primary whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium" href="#">
+                            All Users
+                        </a>
+                        <a className="border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium" href="#">
+                            Roles &amp; Permissions
+                        </a>
+                        <a className="border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium" href="#">
+                            Audit Logs
+                        </a>
+                    </nav>
                 </div>
-                {/* Filter Tabs */}
-                <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl overflow-x-auto hide-scrollbar gap-1">
-                    {filters.map((f) => (
-                        <button
-                            key={f}
-                            onClick={() => setRoleFilter(f)}
-                            className={clsx(
-                                "flex-1 py-1.5 px-3 text-xs font-medium rounded-lg whitespace-nowrap transition-all",
-                                roleFilter === f
-                                    ? "bg-white dark:bg-slate-800 shadow-sm text-primary"
-                                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                            )}
-                        >
-                            {f}
-                        </button>
-                    ))}
-                </div>
-            </div>
+            </header>
 
-            {/* Member List */}
-            <main className="flex-1 pb-24 md:pb-8 space-y-4 px-4 md:px-0">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 px-1">
-                    Team Members ({filtered.length})
-                </h2>
-                {loading && (
-                    <div className="text-center py-12 text-slate-400">Loading members...</div>
-                )}
-                {!loading && filtered.length === 0 && (
-                    <div className="text-center py-12 text-slate-400">
-                        <span className="material-symbols-outlined text-4xl block mb-2">group_off</span>
-                        <p className="font-semibold">No members found</p>
-                    </div>
-                )}
-                {!loading && filtered.map((member) => {
-                    const config = ROLE_CONFIG[member.role];
-                    const canEdit = config.canEdit;
-                    return (
-                        <div
-                            key={member.id}
-                            className={clsx(
-                                "bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm transition-opacity",
-                                !canEdit && "opacity-80"
-                            )}
-                        >
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className={clsx("size-10 rounded-full flex items-center justify-center font-bold text-sm", member.avatarColor)}>
-                                        {member.initials}
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold text-sm">{member.name}</p>
-                                        <p className="text-xs text-slate-500">{member.email}</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => canEdit && setSheet(member.id)}
-                                    className={clsx("px-2 py-0.5 rounded text-[10px] font-bold uppercase", config.badge, canEdit && "cursor-pointer hover:opacity-80")}
-                                >
-                                    {config.text}
-                                </button>
+            {/* Scrollable Content Area */}
+            <main className="flex-1 overflow-y-auto px-4 md:px-8 pb-32 md:pb-8">
+                {/* Filters & Search */}
+                <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+                    <div className="relative max-w-md w-full flex items-center gap-2">
+                        <div className="relative flex-1">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="material-symbols-outlined text-slate-400">search</span>
                             </div>
-                            <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                                {PERMISSIONS.map((p) => (
-                                    <div key={p.id} className={clsx("flex items-center justify-between", !canEdit && "opacity-60")}>
-                                        <div className="flex items-center gap-2">
-                                            <span className="material-symbols-outlined text-slate-400 text-sm">{p.icon}</span>
-                                            <span className="text-xs font-medium">{p.label}</span>
-                                        </div>
-                                        <button
-                                            disabled={!canEdit}
-                                            onClick={() => togglePermission(member.id, p.id)}
-                                            className={clsx(
-                                                "relative h-5 w-9 rounded-full transition-colors duration-200",
-                                                member.permissions[p.id] ? "bg-primary" : "bg-slate-200 dark:bg-slate-700",
-                                                !canEdit && "cursor-not-allowed"
-                                            )}
-                                        >
-                                            <div className={clsx(
-                                                "absolute top-[2px] h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200",
-                                                member.permissions[p.id] ? "translate-x-[18px] left-0" : "translate-x-0 left-[2px]"
-                                            )} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                            {canEdit && (
-                                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                                    <button
-                                        onClick={() => removeMember(member.id, member.name)}
-                                        className="text-xs font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 transition-colors flex items-center gap-1"
-                                    >
-                                        <span className="material-symbols-outlined text-[14px]">person_remove</span>
-                                        Remove Member
-                                    </button>
-                                </div>
-                            )}
+                            <input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="block w-full rounded-lg border-0 py-2.5 pl-10 pr-3 text-slate-900 dark:text-white bg-white dark:bg-[#161920] ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                                placeholder="Search users by name, email or role"
+                                type="text"
+                            />
                         </div>
-                    );
-                })}
+                        <select
+                            value={roleFilter}
+                            onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
+                            className="bg-white dark:bg-[#161920] border-0 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 rounded-lg py-2.5 px-3 text-sm text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-inset focus:ring-primary"
+                        >
+                            {filters.map(f => (
+                                <option key={f} value={f}>{f === "All" ? "All Roles" : f}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Table Container */}
+                <div className="bg-white dark:bg-[#161920] rounded-xl shadow-sm ring-1 ring-slate-200 dark:ring-slate-800 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 relative">
+                            <thead className="bg-slate-50 dark:bg-slate-900/50">
+                                <tr>
+                                    <th className="py-3.5 pl-4 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 sm:pl-6" scope="col">Name</th>
+                                    <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400" scope="col">Role</th>
+                                    <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400" scope="col">Permissions</th>
+                                    <th className="relative py-3.5 pl-3 pr-4 sm:pr-6" scope="col">
+                                        <span className="sr-only">Actions</span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-[#161920]">
+                                {loading ? (
+                                    <tr><td colSpan={4} className="py-12 text-center text-slate-500"><span className="material-symbols-outlined animate-spin align-middle mr-2">progress_activity</span>Loading...</td></tr>
+                                ) : filtered.length === 0 ? (
+                                    <tr><td colSpan={4} className="py-12 text-center text-slate-500 text-sm">No members match your criteria.</td></tr>
+                                ) : filtered.map((member) => (
+                                    <tr key={member.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="whitespace-nowrap py-4 pl-4 pr-3 sm:pl-6">
+                                            <div className="flex items-center">
+                                                <div className="h-10 w-10 flex-shrink-0">
+                                                    <div className={clsx("h-10 w-10 rounded-full flex items-center justify-center font-bold", member.avatarColor)}>
+                                                        {member.initials}
+                                                    </div>
+                                                </div>
+                                                <div className="ml-4">
+                                                    <div className="font-medium text-slate-900 dark:text-white">{member.name}</div>
+                                                    <div className="text-sm text-slate-500 dark:text-slate-400">{member.email}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="whitespace-nowrap px-3 py-4 text-sm text-slate-500 dark:text-slate-400">
+                                            <button
+                                                onClick={() => ROLE_CONFIG[member.role].canEdit && setSheet(member.id)}
+                                                className={clsx(
+                                                    "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset transition-colors",
+                                                    member.role === 'Admin' ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 ring-purple-700/10 dark:ring-purple-400/20' :
+                                                        member.role === 'Developer' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 ring-blue-700/10 dark:ring-blue-400/20' :
+                                                            'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 ring-orange-700/10 dark:ring-orange-400/20',
+                                                    ROLE_CONFIG[member.role].canEdit && "hover:opacity-80 cursor-pointer"
+                                                )}
+                                            >
+                                                {ROLE_CONFIG[member.role].text}
+                                            </button>
+                                        </td>
+                                        <td className="whitespace-nowrap px-3 py-4 text-sm text-slate-500 dark:text-slate-400 w-64 max-w-sm">
+                                            <div className="flex gap-2 flex-wrap">
+                                                {PERMISSIONS.map(p => (
+                                                    member.permissions[p.id] && (
+                                                        <span key={p.id} className="inline-flex items-center gap-1 rounded bg-slate-100 dark:bg-slate-800 px-2 py-1 text-[10px] font-medium text-slate-600 dark:text-slate-300">
+                                                            <span className="material-symbols-outlined text-[12px]">{p.icon}</span>
+                                                            {p.label}
+                                                        </span>
+                                                    )
+                                                ))}
+                                                {Object.values(member.permissions).every(v => !v) && <span className="text-xs text-slate-400 italic">No special permissions</span>}
+                                            </div>
+                                        </td>
+                                        <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                            <button onClick={() => ROLE_CONFIG[member.role].canEdit && setSheet(member.id)} className="text-slate-400 hover:text-primary transition-colors">
+                                                <span className="material-symbols-outlined">edit</span>
+                                            </button>
+                                            {ROLE_CONFIG[member.role].canEdit && (
+                                                <button onClick={() => removeMember(member.id, member.name)} className="text-slate-400 hover:text-red-500 transition-colors ml-4">
+                                                    <span className="material-symbols-outlined">delete</span>
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </main>
 
             {/* Role Assignment Bottom Sheet */}

@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 interface YocoPaymentProps {
     amountInCents: number;
     currency?: "ZAR";
-    storeId: string;
+    storeId?: string;
     name?: string;
     description?: string;
 }
 
-export function YocoPayment({ amountInCents, currency = "ZAR", storeId, name = "URBANSMART-34 Store", description = "Payment for order" }: YocoPaymentProps) {
+export function YocoPayment({ amountInCents, currency = "ZAR", storeId = "811298f2-31aa-4e90-9071-41999bfe47a0", name = "URBANSMART-34 Store", description = "Payment for order" }: YocoPaymentProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();

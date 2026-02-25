@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/layout/AppShell";
-
+import { ThemeProvider } from "@/components/ThemeProvider";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -28,9 +28,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} antialiased bg-background text-foreground`}>
-        <AppShell>
-          {children}
-        </AppShell>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AppShell>
+            {children}
+          </AppShell>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -26,7 +26,7 @@ export default function PaymentPage() {
                         currency="ZAR"
                         name="Premium Plan"
                         description="Monthly subscription"
-                        storeId="demo-store-id"
+                        storeId="811298f2-31aa-4e90-9071-41999bfe47a0"
                     />
 
                     <p className="text-xs text-center text-slate-400">

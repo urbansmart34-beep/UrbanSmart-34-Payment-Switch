@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { dispatchWebhooks } from '@/lib/webhook';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const txId = searchParams.get('tx');
@@ -41,7 +43,7 @@ export async function GET(request: Request) {
 
         const yocoData = await yocoRes.json();
 
-        if (yocoData.status === 'succeeded' || yocoData.status === 'paid' || yocoData.paymentStatus === 'paid') {
+        if (yocoData.status === 'succeeded' || yocoData.status === 'completed' || yocoData.status === 'paid' || yocoData.paymentStatus === 'paid') {
             const successTx = await prisma.transaction.update({
                 where: { id: txId },
                 data: { status: 'SUCCESS' },
